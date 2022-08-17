@@ -68,8 +68,6 @@ class Display {
     unsigned int _screen = 0;
 
   public:
-    Display* nextDisplay = this;
-
     virtual void actionDown(){};
     virtual void actionUp(){};
 
@@ -79,14 +77,18 @@ class Display {
 
     virtual void display(){};
 
-    Display& next() {
+    void firstScreen() {
+        _screen = 0;
+    }
+
+    const bool next() {
         ++_screen;
         clear();
         if (_screen >= numScreens()) {
             _screen = 0;
-            return *nextDisplay;
+            return true;
         }
-        return *this;
+        return false;
     };
 
     virtual unsigned int numScreens() {
@@ -208,6 +210,36 @@ class Time : public Display {
     };
 };
 
+class Displays {
+  public:
+    static const unsigned int MAX_DISPLAYS = 4;
+    unsigned int _numDisplays = 0;
+    Display* _displays[MAX_DISPLAYS];
+    unsigned int _idx;
+
+  public:
+    void addDisplay(Display& display) {
+        if (_numDisplays <= MAX_DISPLAYS - 1) {
+            _displays[_numDisplays++] = &display;
+        }
+    }
+
+    Display& currentDisplay() const {
+        return *_displays[_idx];
+    }
+
+    void firstScreen() {
+        _idx = 0;
+        currentDisplay().firstScreen();
+    }
+
+    void next() {
+        if (currentDisplay().next() && (++_idx >= _numDisplays)) {
+            _idx = 0;
+        }
+    }
+};
+
 // class Irrigator {
 //   private:
 //   unsigned int
@@ -225,7 +257,7 @@ Backlight backlight(3);
 Display1 d1;
 Display2 d2;
 Time time;
-Display* currentDisplay;
+Displays displays;
 
 // Timer 0 Interrupt is called once a millisecond
 SIGNAL(TIMER0_COMPA_vect) {
@@ -254,31 +286,32 @@ void setup() {
 
     // OTHER
     digitalWrite(pump, pumpState);
-    currentDisplay = &time;
-    d1.nextDisplay = &d2;
-    d2.nextDisplay = &time;
-    time.nextDisplay = &d1;
+    displays.addDisplay(time);
+    displays.addDisplay(d1);
+    displays.addDisplay(d2);
+    displays.firstScreen();
 }
 
 void loop() {
     if (!backlight.isOn() && (btnBlack.isSinglePressed() || btnGreen.isSinglePressed() ||
                               btnOrange.isSinglePressed())) {
         backlight.turnOn();
+        displays.firstScreen();
     }
 
     if (btnBlack.isSinglePressed()) {
-        currentDisplay = &(currentDisplay->next());
+        displays.next();
     }
 
     if (btnOrange.isHeldRepeat() || btnOrange.isSinglePressed()) {
-        currentDisplay->actionUp();
+        displays.currentDisplay().actionUp();
     }
 
     if (btnGreen.isHeldRepeat() || btnGreen.isSinglePressed()) {
-        currentDisplay->actionDown();
+        displays.currentDisplay().actionDown();
     }
 
-    currentDisplay->display();
+    displays.currentDisplay().display();
 
     delay(50);
 }
