@@ -65,7 +65,7 @@ class Backlight {
 
 class Display {
   protected:
-    unsigned int _screen = 0;
+    unsigned int _page = 0;
 
   public:
     virtual void actionDown(){};
@@ -77,15 +77,15 @@ class Display {
 
     virtual void display(){};
 
-    void firstScreen() {
-        _screen = 0;
+    void firstPage() {
+        _page = 0;
     }
 
     const bool next() {
-        ++_screen;
+        ++_page;
         clear();
-        if (_screen >= numScreens()) {
-            _screen = 0;
+        if (_page >= numScreens()) {
+            _page = 0;
             return true;
         }
         return false;
@@ -102,7 +102,7 @@ class Display1 : public Display {
         lcd.setCursor(0, 0);
         lcd.write("Display1");
         lcd.setCursor(0, 1);
-        lcd.print(_screen);
+        lcd.print(_page);
     };
 
     unsigned int numScreens() {
@@ -116,7 +116,7 @@ class Display2 : public Display {
         lcd.setCursor(0, 0);
         lcd.write("Display2");
         lcd.setCursor(0, 1);
-        lcd.print(_screen);
+        lcd.print(_page);
     };
 
     unsigned int numScreens() {
@@ -150,17 +150,17 @@ class Time : public Display {
 
   public:
     void actionUp() {
-        if (_screen == SET_MINUTES) {
+        if (_page == SET_MINUTES) {
             inc(MS_MINUTE);
-        } else if (_screen == SET_HOURS) {
+        } else if (_page == SET_HOURS) {
             inc(MS_HOUR);
         }
     }
 
     void actionDown() {
-        if (_screen == SET_MINUTES) {
+        if (_page == SET_MINUTES) {
             dec(MS_MINUTE);
-        } else if (_screen == SET_HOURS) {
+        } else if (_page == SET_HOURS) {
             dec(MS_HOUR);
         }
     }
@@ -196,9 +196,9 @@ class Time : public Display {
     void display() {
         auto blank = -1;
         if (2 * (_msCount % MS_SECOND) < MS_SECOND) {
-            if (_screen == SET_MINUTES) {
+            if (_page == SET_MINUTES) {
                 blank = 3;
-            } else if (_screen == SET_HOURS) {
+            } else if (_page == SET_HOURS) {
                 blank = 0;
             }
         }
@@ -230,7 +230,7 @@ class Displays {
 
     void firstScreen() {
         _idx = 0;
-        currentDisplay().firstScreen();
+        currentDisplay().firstPage();
     }
 
     void next() {
