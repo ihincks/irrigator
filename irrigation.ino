@@ -20,21 +20,21 @@ int i = 0;
 class Button {
   private:
     /// Possible button states.
-    enum STATES { IDLE, DEBOUNCE, PRESSED, HELD, RESET };
+    enum STATES { IDLE, DEBOUNCE, PRESSED, HELD };
 
     /// Debounce time.
     static const unsigned int MS_DEBOUNCE = 50;
 
-    /// Time before button is active again past `reset`.
-    static const unsigned int MS_RESET = 500;
+    /// How long the button must be held from press time to enter `HELD` state.
+    static const unsigned int MS_HOLD = 1000;
 
-    /// How long the button must be held to enter `HELD` state.
-    static const unsigned int MS_HOLD_COUNT = 2000;
+    /// Duration between repeat events when the button is in the `HELD` state.
+    static const unsigned int MS_HOLD_REPEAT = 200;
 
     /// Digital pin number of the button.
     const unsigned int _pin;
 
-    /// Counter used for changing state.
+    /// Counter used for changing states.
     unsigned int _msCount;
 
     /// Current state of the button.
@@ -43,7 +43,7 @@ class Button {
     /// Whether the current single press has been used and is therefore blocked.
     bool _singleBlocked;
 
-    /// Whether the current single press has been used and is therefore blocked.
+    /// Whether we are in a blocking period while the button is being `HELD`.
     bool _holdBlocked;
 
   public:
@@ -58,14 +58,6 @@ class Button {
     }
 
     void callback() {
-        if (_state == RESET) {
-            if (++_msCount < MS_RESET) {
-                return;
-            }
-            ++_msCount;
-            _state = IDLE;
-        }
-
         int read = digitalRead(_pin);
         if (read == 1) {
             _state = IDLE;
@@ -78,14 +70,21 @@ class Button {
             case DEBOUNCE:
                 if (++_msCount > MS_DEBOUNCE) {
                     _singleBlocked = false;
+                    _holdBlocked = false;
                     _state = PRESSED;
                 }
                 break;
             case PRESSED:
-                if (++_msCount > MS_HOLD_COUNT)
+                if (++_msCount > MS_HOLD) {
                     _state = HELD;
+                    _msCount = 0;
+                }
                 break;
             case HELD:
+                if (++_msCount > MS_HOLD_REPEAT) {
+                    _holdBlocked = false;
+                    _msCount = 0;
+                }
                 break;
             }
         }
@@ -93,6 +92,14 @@ class Button {
 
     const bool isHeld() const {
         return _state == HELD;
+    }
+
+    const bool isHeldRepeat() {
+        if (!_holdBlocked && isHeld()) {
+            _holdBlocked = true;
+            return true;
+        }
+        return false;
     }
 
     const bool isPressed() const {
@@ -105,11 +112,6 @@ class Button {
             return true;
         }
         return false;
-    }
-
-    void reset() {
-        _state = RESET;
-        _msCount = 0;
     }
 };
 
@@ -366,15 +368,15 @@ void loop() {
         currentDisplay = &(currentDisplay->next());
     }
 
-    if (btnOrange.isHeld() || btnOrange.isSinglePressed()) {
+    if (btnOrange.isHeldRepeat() || btnOrange.isSinglePressed()) {
         currentDisplay->actionUp();
     }
 
-    if (btnGreen.isHeld() || btnGreen.isSinglePressed()) {
+    if (btnGreen.isHeldRepeat() || btnGreen.isSinglePressed()) {
         currentDisplay->actionDown();
     }
 
     currentDisplay->display();
 
-    delay(100);
+    delay(50);
 }
