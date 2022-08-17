@@ -63,7 +63,7 @@ class Backlight {
     }
 };
 
-class Display {
+class Screen {
   protected:
     unsigned int _page = 0;
 
@@ -84,47 +84,47 @@ class Display {
     const bool next() {
         ++_page;
         clear();
-        if (_page >= numScreens()) {
+        if (_page >= numPages()) {
             _page = 0;
             return true;
         }
         return false;
     };
 
-    virtual unsigned int numScreens() {
+    virtual unsigned int numPages() {
         return 1;
     };
 };
 
-class Display1 : public Display {
+class Screen1 : public Screen {
   public:
     void display() {
         lcd.setCursor(0, 0);
-        lcd.write("Display1");
+        lcd.write("Screen1");
         lcd.setCursor(0, 1);
         lcd.print(_page);
     };
 
-    unsigned int numScreens() {
+    unsigned int numPages() {
         return 3;
     };
 };
 
-class Display2 : public Display {
+class Screen2 : public Screen {
   public:
     void display() {
         lcd.setCursor(0, 0);
-        lcd.write("Display2");
+        lcd.write("Screen2");
         lcd.setCursor(0, 1);
         lcd.print(_page);
     };
 
-    unsigned int numScreens() {
+    unsigned int numPages() {
         return 2;
     };
 };
 
-class Time : public Display {
+class Time : public Screen {
   private:
     enum STATES { IDLE, SET_MINUTES, SET_HOURS };
 
@@ -205,36 +205,36 @@ class Time : public Display {
         show(0, 0, blank);
     };
 
-    unsigned int numScreens() {
+    unsigned int numPages() {
         return 3;
     };
 };
 
-class Displays {
+class Display {
   public:
     static const unsigned int MAX_DISPLAYS = 4;
-    unsigned int _numDisplays = 0;
-    Display* _displays[MAX_DISPLAYS];
+    unsigned int _numScreens = 0;
+    Screen* _screens[MAX_DISPLAYS];
     unsigned int _idx;
 
   public:
-    void addDisplay(Display& display) {
-        if (_numDisplays <= MAX_DISPLAYS - 1) {
-            _displays[_numDisplays++] = &display;
+    void addScreen(Screen& display) {
+        if (_numScreens <= MAX_DISPLAYS - 1) {
+            _screens[_numScreens++] = &display;
         }
     }
 
-    Display& currentDisplay() const {
-        return *_displays[_idx];
+    Screen& currentScreen() const {
+        return *_screens[_idx];
     }
 
     void firstScreen() {
         _idx = 0;
-        currentDisplay().firstPage();
+        currentScreen().firstPage();
     }
 
     void next() {
-        if (currentDisplay().next() && (++_idx >= _numDisplays)) {
+        if (currentScreen().next() && (++_idx >= _numScreens)) {
             _idx = 0;
         }
     }
@@ -254,10 +254,10 @@ Button btnOrange(12);
 
 Backlight backlight(3);
 
-Display1 d1;
-Display2 d2;
+Screen1 d1;
+Screen2 d2;
 Time time;
-Displays displays;
+Display display;
 
 // Timer 0 Interrupt is called once a millisecond
 SIGNAL(TIMER0_COMPA_vect) {
@@ -286,32 +286,32 @@ void setup() {
 
     // OTHER
     digitalWrite(pump, pumpState);
-    displays.addDisplay(time);
-    displays.addDisplay(d1);
-    displays.addDisplay(d2);
-    displays.firstScreen();
+    display.addScreen(time);
+    display.addScreen(d1);
+    display.addScreen(d2);
+    display.firstScreen();
 }
 
 void loop() {
     if (!backlight.isOn() && (btnBlack.isSinglePressed() || btnGreen.isSinglePressed() ||
                               btnOrange.isSinglePressed())) {
         backlight.turnOn();
-        displays.firstScreen();
+        display.firstScreen();
     }
 
     if (btnBlack.isSinglePressed()) {
-        displays.next();
+        display.next();
     }
 
     if (btnOrange.isHeldRepeat() || btnOrange.isSinglePressed()) {
-        displays.currentDisplay().actionUp();
+        display.currentScreen().actionUp();
     }
 
     if (btnGreen.isHeldRepeat() || btnGreen.isSinglePressed()) {
-        displays.currentDisplay().actionDown();
+        display.currentScreen().actionDown();
     }
 
-    displays.currentDisplay().display();
+    display.currentScreen().display();
 
     delay(50);
 }
