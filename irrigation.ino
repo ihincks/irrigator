@@ -210,6 +210,38 @@ class Time : public Screen {
     };
 };
 
+class Irrigator : public Screen {
+  private:
+    enum STATES { SET_TIMES_PER_DAY, SET_SECONDS_PER_WATER };
+    unsigned int _timesPerDay;
+    unsigned int _secondsPerWater;
+
+  public:
+    void actionUp() {
+        if ((_page == SET_TIMES_PER_DAY) && (_timesPerDay < 10)) {
+            ++_timesPerDay;
+        } else if ((_page == SET_SECONDS_PER_WATER) && (_secondsPerWater < 1000)) {
+            _secondsPerWater += 10;
+        }
+    }
+
+    void actionDown() {
+        if ((_page == SET_TIMES_PER_DAY) && _timesPerDay) {
+            --_timesPerDay;
+        } else if (_page == SET_SECONDS_PER_WATER) {
+            _secondsPerWater -= (_secondsPerWater > 10) ? 10 : _secondsPerWater;
+        }
+    }
+
+    void display(){
+
+    };
+
+    unsigned int numPages() {
+        return 2;
+    };
+};
+
 class Display {
   public:
     static const unsigned int MAX_DISPLAYS = 4;
@@ -239,13 +271,6 @@ class Display {
         }
     }
 };
-
-// class Irrigator {
-//   private:
-//   unsigned int
-//   public:
-
-// };
 
 // BUTTONS
 Button btnBlack(10);
